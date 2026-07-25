@@ -222,6 +222,28 @@ a {
   padding: 18px;
 }
 
+.upload-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.upload-btn {
+  display: inline-flex;
+  cursor: pointer;
+}
+
+.upload-status {
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  color: var(--ink-soft);
+  margin-top: 6px;
+}
+
+.upload-error {
+  color: var(--stamp-red);
+}
+
 .field {
   margin-bottom: 16px;
 }

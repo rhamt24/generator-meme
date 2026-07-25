@@ -23,10 +23,42 @@ export default function Page() {
   const [stroke, setStroke] = useState("#000000");
   const [copied, setCopied] = useState(false);
   const [origin, setOrigin] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
+  const [fileName, setFileName] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
 
   useEffect(() => {
     setOrigin(window.location.origin);
   }, []);
+
+  const handleFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    setUploadError("");
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/upload", { method: "POST", body: formData });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || "Upload gagal.");
+      setImageUrl(data.url);
+      setFileName(file.name);
+    } catch (err) {
+      setUploadError(err.message || "Upload gagal, coba lagi.");
+    } finally {
+      setUploading(false);
+      e.target.value = "";
+    }
+  };
+
+  const resetToDemo = () => {
+    setImageUrl("");
+    setFileName("");
+    setUploadError("");
+  };
 
   const debouncedText = useDebounced(text, 400);
   const debouncedText2 = useDebounced(text2, 400);
@@ -42,8 +74,9 @@ export default function Page() {
     params.set("format", format);
     params.set("color", color.replace("#", ""));
     params.set("stroke", stroke.replace("#", ""));
+    if (imageUrl) params.set("image", imageUrl);
     return `/api/meme?${params.toString()}`;
-  }, [debouncedText, debouncedText2, debouncedWidth, debouncedHeight, format, color, stroke]);
+  }, [debouncedText, debouncedText2, debouncedWidth, debouncedHeight, format, color, stroke, imageUrl]);
 
   const fullUrl = origin ? `${origin}${path}` : path;
 
@@ -69,8 +102,8 @@ export default function Page() {
         </div>
       </header>
       <p className="tagline">
-        Generator gambar meme lewat URL — ketik teksnya, atur ukurannya, tinggal tempel link-nya ke bot, chat, atau
-        website kamu. Gambarnya langsung jadi tiap kali link-nya dibuka.
+        Generator gambar meme lewat URL — pakai foto contoh yang sudah ada, atau upload foto sendiri dari galeri.
+        Atur teksnya, atur ukurannya, tinggal tempel link-nya ke bot, chat, atau website kamu.
       </p>
 
       <section className="pasal" id="coba">
@@ -88,13 +121,44 @@ export default function Page() {
               <span>.{format}</span>
             </div>
             <div className="stamp" aria-hidden="true">
-              contoh
+              {imageUrl ? "foto" : "contoh"}
               <br />
-              live
+              {imageUrl ? "kamu" : "live"}
             </div>
           </div>
 
           <div className="form-block">
+            <div className="field">
+              <label htmlFor="photo">Foto dasar</label>
+              <div className="upload-row">
+                <label className="btn secondary upload-btn" htmlFor="photo">
+                  {uploading ? "mengunggah…" : "upload dari galeri"}
+                </label>
+                <input
+                  id="photo"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileChange}
+                  disabled={uploading}
+                  hidden
+                />
+                {imageUrl && (
+                  <button type="button" className="btn secondary" onClick={resetToDemo}>
+                    pakai foto contoh
+                  </button>
+                )}
+              </div>
+              <div className="upload-status">
+                {uploadError ? (
+                  <span className="upload-error">{uploadError}</span>
+                ) : imageUrl ? (
+                  <span>terpasang: {fileName || "foto kamu"}</span>
+                ) : (
+                  <span>lagi pakai foto contoh bawaan — upload foto sendiri kalau mau ganti</span>
+                )}
+              </div>
+            </div>
+
             <div className="field">
               <label htmlFor="text">Teks atas</label>
               <input id="text" type="text" value={text} maxLength={80} onChange={(e) => setText(e.target.value)} />
@@ -178,24 +242,41 @@ export default function Page() {
         </div>
         <ol className="clauses">
           <li>
-            Gambarnya dibuat langsung oleh endpoint <code>GET /api/meme</code> — nggak perlu login atau API key.
-            Tinggal buka URL-nya di browser, atau panggil dari bot/aplikasi, gambarnya langsung muncul.
+            <span>
+              Gambarnya dibuat langsung oleh endpoint <code>GET /api/meme</code> — nggak perlu login atau API key.
+              Tinggal buka URL-nya di browser, atau panggil dari bot/aplikasi, gambarnya langsung muncul.
+            </span>
           </li>
           <li>
-            Ganti teksnya lewat parameter <code>text</code> (teks atas) dan <code>text2</code> (teks bawah, boleh
-            dikosongkan). Otomatis jadi huruf kapital dan pindah baris sendiri kalau kepanjangan.
+            <span>
+              Mau pakai foto sendiri? Upload dari galeri di form atas, atau — kalau manggil API-nya langsung — kirim
+              parameter <code>image</code> berisi URL foto (link dari Catbox, Imgur, CDN kamu sendiri, bebas). Kalau
+              parameter ini dikosongkan, otomatis pakai foto contoh bawaan.
+            </span>
           </li>
           <li>
-            Atur ukuran gambarnya dengan <code>width</code> dan <code>height</code> (satuan piksel) — pas buat
-            thumbnail bot, story, atau kotak profil.
+            <span>
+              Ganti teksnya lewat parameter <code>text</code> (teks atas) dan <code>text2</code> (teks bawah, boleh
+              dikosongkan). Otomatis jadi huruf kapital dan pindah baris sendiri kalau kepanjangan.
+            </span>
           </li>
           <li>
-            Mau versi gerak? Ganti <code>format</code> jadi <code>gif</code>, teksnya bakal muncul dengan efek
-            "cap stempel". Buat gambar diam, pakai <code>png</code>, <code>jpg</code>, atau <code>webp</code>.
+            <span>
+              Atur ukuran gambarnya dengan <code>width</code> dan <code>height</code> (satuan piksel) — pas buat
+              thumbnail bot, story, atau kotak profil.
+            </span>
           </li>
           <li>
-            Tempel URL-nya di mana pun yang bisa nampilin gambar dari link — bot WhatsApp, embed Discord, Telegram,
-            atau <code>&lt;img&gt;</code> biasa di halaman web kamu.
+            <span>
+              Mau versi gerak? Ganti <code>format</code> jadi <code>gif</code>, teksnya bakal muncul dengan efek
+              "cap stempel". Buat gambar diam, pakai <code>png</code>, <code>jpg</code>, atau <code>webp</code>.
+            </span>
+          </li>
+          <li>
+            <span>
+              Tempel URL-nya di mana pun yang bisa nampilin gambar dari link — bot WhatsApp, embed Discord,
+              Telegram, atau <code>&lt;img&gt;</code> biasa di halaman web kamu.
+            </span>
           </li>
         </ol>
       </section>
@@ -214,6 +295,11 @@ export default function Page() {
             </tr>
           </thead>
           <tbody>
+            <tr>
+              <td><code>image</code></td>
+              <td>foto contoh</td>
+              <td>URL foto yang mau dipakai jadi dasar meme. Kosongkan untuk pakai foto contoh bawaan.</td>
+            </tr>
             <tr>
               <td><code>text</code></td>
               <td>BELUM SIAP</td>
