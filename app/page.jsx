@@ -23,13 +23,9 @@ export default function Page() {
   const [stroke, setStroke] = useState("#000000");
   const [copied, setCopied] = useState(false);
   const [origin, setOrigin] = useState("");
-  const [today, setToday] = useState("");
 
   useEffect(() => {
     setOrigin(window.location.origin);
-    setToday(
-      new Intl.DateTimeFormat("id-ID", { day: "2-digit", month: "long", year: "numeric" }).format(new Date())
-    );
   }, []);
 
   const debouncedText = useDebounced(text, 400);
@@ -68,25 +64,19 @@ export default function Page() {
           BELUMSIAP<span>.GEN</span>
         </h1>
         <div className="memo-meta">
-          <div>
-            NOMOR: <b>01/MEME/{new Date().getFullYear()}</b>
-          </div>
-          <div>
-            TANGGAL: <b>{today || "—"}</b>
-          </div>
-          <div>
-            PERIHAL: <b>Pembuatan Gambar Otomatis via URL</b>
-          </div>
+          <span className="live-dot" aria-hidden="true" />
+          generator aktif
         </div>
       </header>
       <p className="tagline">
-        // generator gambar meme yang bisa dipanggil langsung lewat GET request — buat bot, chat, atau apa pun yang bisa buka URL.
+        Generator gambar meme lewat URL — ketik teksnya, atur ukurannya, tinggal tempel link-nya ke bot, chat, atau
+        website kamu. Gambarnya langsung jadi tiap kali link-nya dibuka.
       </p>
 
       <section className="pasal" id="coba">
         <div className="pasal-head">
-          <span className="pasal-num">PASAL I</span>
-          <h2 className="pasal-title">Buat &amp; Pratinjau</h2>
+          <span className="pasal-num">Live demo</span>
+          <h2 className="pasal-title">Bikin Meme-nya</h2>
         </div>
 
         <div className="hero">
@@ -183,37 +173,37 @@ export default function Page() {
 
       <section className="pasal" id="cara-pakai">
         <div className="pasal-head">
-          <span className="pasal-num">PASAL II</span>
+          <span className="pasal-num">Panduan</span>
           <h2 className="pasal-title">Cara Pakai</h2>
         </div>
         <ol className="clauses">
           <li>
-            Setiap gambar dibuat langsung oleh endpoint <code>GET /api/meme</code> — tidak perlu login, API key, atau
-            request <code>POST</code>. Tinggal buka URL-nya, gambar langsung dirender.
+            Gambarnya dibuat langsung oleh endpoint <code>GET /api/meme</code> — nggak perlu login atau API key.
+            Tinggal buka URL-nya di browser, atau panggil dari bot/aplikasi, gambarnya langsung muncul.
           </li>
           <li>
-            Atur teks lewat parameter <code>text</code> (atas) dan <code>text2</code> (bawah, opsional). Teks otomatis
-            ditulis kapital dan dibungkus ke baris baru kalau kepanjangan.
+            Ganti teksnya lewat parameter <code>text</code> (teks atas) dan <code>text2</code> (teks bawah, boleh
+            dikosongkan). Otomatis jadi huruf kapital dan pindah baris sendiri kalau kepanjangan.
           </li>
           <li>
-            Atur ukuran keluaran dengan <code>width</code> dan <code>height</code> dalam satuan piksel — cocok untuk
-            thumbnail bot, story, atau ukuran kotak profil.
+            Atur ukuran gambarnya dengan <code>width</code> dan <code>height</code> (satuan piksel) — pas buat
+            thumbnail bot, story, atau kotak profil.
           </li>
           <li>
-            Ganti <code>format</code> ke <code>gif</code> kalau butuh versi animasi (teks masuk dengan efek stempel),
-            atau <code>png</code> / <code>jpg</code> / <code>webp</code> untuk gambar diam.
+            Mau versi gerak? Ganti <code>format</code> jadi <code>gif</code>, teksnya bakal muncul dengan efek
+            "cap stempel". Buat gambar diam, pakai <code>png</code>, <code>jpg</code>, atau <code>webp</code>.
           </li>
           <li>
-            Tempel URL hasil generate di mana pun bot atau aplikasi kamu bisa membuka gambar dari URL — WhatsApp bot,
-            Discord embed, Telegram, atau <code>&lt;img&gt;</code> biasa di halaman web.
+            Tempel URL-nya di mana pun yang bisa nampilin gambar dari link — bot WhatsApp, embed Discord, Telegram,
+            atau <code>&lt;img&gt;</code> biasa di halaman web kamu.
           </li>
         </ol>
       </section>
 
       <section className="pasal" id="parameter">
         <div className="pasal-head">
-          <span className="pasal-num">PASAL III</span>
-          <h2 className="pasal-title">Parameter GET</h2>
+          <span className="pasal-num">Referensi</span>
+          <h2 className="pasal-title">Parameter yang Bisa Diatur</h2>
         </div>
         <table className="ptable">
           <thead>
@@ -265,20 +255,20 @@ export default function Page() {
 
       <section className="pasal" id="contoh">
         <div className="pasal-head">
-          <span className="pasal-num">PASAL IV</span>
+          <span className="pasal-num">Galeri</span>
           <h2 className="pasal-title">Contoh Cepat</h2>
         </div>
         <div className="examples">
           <ExampleThumb text="BELUM SIAP" format="png" />
           <ExampleThumb text="MASIH LOADING" format="jpg" />
-          <ExampleThumb text="SENIN LAGI" text2="SENIN LAGI" format="webp" />
+          <ExampleThumb text="SENIN LAGI" text2="MASIH NGANTUK" format="webp" />
           <ExampleThumb text="LAGI DIPROSES" format="gif" />
         </div>
       </section>
 
       <footer className="footer">
-        <span>dibuat untuk dipakai bebas — tempel, embed, atau panggil dari bot kesayanganmu.</span>
-        <span>disetujui &amp; dicap: BELUMSIAP.GEN</span>
+        <span>bebas dipakai — tempel, embed, atau panggil dari bot kesayanganmu.</span>
+        <span>BELUMSIAP.GEN</span>
       </footer>
     </main>
   );
