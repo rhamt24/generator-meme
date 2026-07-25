@@ -23,41 +23,31 @@ export default function Page() {
   const [stroke, setStroke] = useState("#000000");
   const [copied, setCopied] = useState(false);
   const [origin, setOrigin] = useState("");
-  const [imageUrl, setImageUrl] = useState("");
+  const [localFile, setLocalFile] = useState(null);
+  const [previewBlobUrl, setPreviewBlobUrl] = useState("");
   const [fileName, setFileName] = useState("");
-  const [uploading, setUploading] = useState(false);
-  const [uploadError, setUploadError] = useState("");
+  const [rendering, setRendering] = useState(false);
+  const [renderError, setRenderError] = useState("");
 
   useEffect(() => {
     setOrigin(window.location.origin);
   }, []);
 
-  const handleFileChange = async (e) => {
+  const handleFileChange = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    setUploading(true);
-    setUploadError("");
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-      const res = await fetch("/api/upload", { method: "POST", body: formData });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || "Upload gagal.");
-      setImageUrl(data.url);
-      setFileName(file.name);
-    } catch (err) {
-      setUploadError(err.message || "Upload gagal, coba lagi.");
-    } finally {
-      setUploading(false);
-      e.target.value = "";
-    }
+    setRenderError("");
+    setLocalFile(file);
+    setFileName(file.name);
+    e.target.value = "";
   };
 
   const resetToDemo = () => {
-    setImageUrl("");
+    setLocalFile(null);
     setFileName("");
-    setUploadError("");
+    setRenderError("");
+    if (previewBlobUrl) URL.revokeObjectURL(previewBlobUrl);
+    setPreviewBlobUrl("");
   };
 
   const debouncedText = useDebounced(text, 400);
@@ -74,10 +64,57 @@ export default function Page() {
     params.set("format", format);
     params.set("color", color.replace("#", ""));
     params.set("stroke", stroke.replace("#", ""));
-    if (imageUrl) params.set("image", imageUrl);
     return `/api/meme?${params.toString()}`;
-  }, [debouncedText, debouncedText2, debouncedWidth, debouncedHeight, format, color, stroke, imageUrl]);
+  }, [debouncedText, debouncedText2, debouncedWidth, debouncedHeight, format, color, stroke]);
 
+  // When a local photo is picked, it never leaves this browser except as
+  // a direct POST straight to /api/meme — the render comes back as a
+  // buffer/blob, no Catbox or third-party hosting involved.
+  useEffect(() => {
+    if (!localFile) return;
+    let cancelled = false;
+    let objectUrl = "";
+
+    const run = async () => {
+      setRendering(true);
+      setRenderError("");
+      try {
+        const formData = new FormData();
+        formData.append("file", localFile);
+        formData.append("text", debouncedText || "BELUM SIAP");
+        if (debouncedText2) formData.append("text2", debouncedText2);
+        formData.append("width", String(debouncedWidth || 720));
+        formData.append("height", String(debouncedHeight || 720));
+        formData.append("format", format);
+        formData.append("color", color.replace("#", ""));
+        formData.append("stroke", stroke.replace("#", ""));
+
+        const res = await fetch("/api/meme", { method: "POST", body: formData });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data?.error || "Gagal bikin gambar dari foto ini.");
+        }
+        const blob = await res.blob();
+        if (cancelled) return;
+        objectUrl = URL.createObjectURL(blob);
+        setPreviewBlobUrl((old) => {
+          if (old) URL.revokeObjectURL(old);
+          return objectUrl;
+        });
+      } catch (err) {
+        if (!cancelled) setRenderError(err.message || "Gagal bikin gambar, coba lagi.");
+      } finally {
+        if (!cancelled) setRendering(false);
+      }
+    };
+
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [localFile, debouncedText, debouncedText2, debouncedWidth, debouncedHeight, format, color, stroke]);
+
+  const previewSrc = localFile ? previewBlobUrl : path;
   const fullUrl = origin ? `${origin}${path}` : path;
 
   const copyUrl = async () => {
@@ -114,16 +151,17 @@ export default function Page() {
 
         <div className="hero">
           <div className="preview-frame">
-            {/* live preview re-fetches whenever the URL below changes */}
-            <img src={path} alt="Pratinjau meme" width={width} height={height} />
+            {/* live preview re-fetches whenever the params below change */}
+            <img src={previewSrc} alt="Pratinjau meme" width={width} height={height} />
             <div className="preview-caption">
               <span>{width}×{height}px</span>
               <span>.{format}</span>
+              {rendering && <span>memproses…</span>}
             </div>
             <div className="stamp" aria-hidden="true">
-              {imageUrl ? "foto" : "contoh"}
+              {localFile ? "foto" : "contoh"}
               <br />
-              {imageUrl ? "kamu" : "live"}
+              {localFile ? "kamu" : "live"}
             </div>
           </div>
 
@@ -132,27 +170,27 @@ export default function Page() {
               <label htmlFor="photo">Foto dasar</label>
               <div className="upload-row">
                 <label className="btn secondary upload-btn" htmlFor="photo">
-                  {uploading ? "mengunggah…" : "upload dari galeri"}
+                  {rendering ? "memproses…" : "upload dari galeri"}
                 </label>
                 <input
                   id="photo"
                   type="file"
                   accept="image/*"
                   onChange={handleFileChange}
-                  disabled={uploading}
+                  disabled={rendering}
                   hidden
                 />
-                {imageUrl && (
+                {localFile && (
                   <button type="button" className="btn secondary" onClick={resetToDemo}>
                     pakai foto contoh
                   </button>
                 )}
               </div>
               <div className="upload-status">
-                {uploadError ? (
-                  <span className="upload-error">{uploadError}</span>
-                ) : imageUrl ? (
-                  <span>terpasang: {fileName || "foto kamu"}</span>
+                {renderError ? (
+                  <span className="upload-error">{renderError}</span>
+                ) : localFile ? (
+                  <span>terpasang: {fileName || "foto kamu"} — diproses langsung di server, nggak diunggah ke hosting manapun</span>
                 ) : (
                   <span>lagi pakai foto contoh bawaan — upload foto sendiri kalau mau ganti</span>
                 )}
@@ -221,18 +259,43 @@ export default function Page() {
           </div>
         </div>
 
-        <div className="receipt">
-          <div className="receipt-label">GET URL — salin &amp; pakai di mana saja</div>
-          <div className="receipt-url">{fullUrl}</div>
-          <div className="receipt-actions">
-            <button className={`btn ${copied ? "stamped" : ""}`} onClick={copyUrl}>
-              {copied ? "✓ tersalin" : "salin url"}
-            </button>
-            <a className="btn secondary" href={path} target="_blank" rel="noreferrer">
-              buka gambar
-            </a>
+        {localFile ? (
+          <div className="receipt">
+            <div className="receipt-label">Foto dari HP kamu — diproses langsung, bukan link publik</div>
+            <div className="receipt-url">
+              Karena fotonya dari perangkat kamu sendiri, hasilnya cuma ada di sesi ini (bukan URL yang bisa dibuka
+              orang lain). Unduh hasilnya, atau kalau mau link yang bisa ditempel ke bot, upload dulu fotonya ke
+              hosting/CDN kamu sendiri lalu panggil <code>/api/meme?image=&lt;url foto&gt;</code>.
+            </div>
+            {previewBlobUrl ? (
+              <div className="receipt-actions">
+                <a className="btn" href={previewBlobUrl} download={`belumsiap.${format === "jpeg" ? "jpg" : format}`}>
+                  unduh gambar
+                </a>
+                <a className="btn secondary" href={previewBlobUrl} target="_blank" rel="noreferrer">
+                  buka gambar
+                </a>
+              </div>
+            ) : (
+              <div className="receipt-actions">
+                <span>{rendering ? "lagi diproses…" : "belum ada hasil"}</span>
+              </div>
+            )}
           </div>
-        </div>
+        ) : (
+          <div className="receipt">
+            <div className="receipt-label">GET URL — salin &amp; pakai di mana saja</div>
+            <div className="receipt-url">{fullUrl}</div>
+            <div className="receipt-actions">
+              <button className={`btn ${copied ? "stamped" : ""}`} onClick={copyUrl}>
+                {copied ? "✓ tersalin" : "salin url"}
+              </button>
+              <a className="btn secondary" href={path} target="_blank" rel="noreferrer">
+                buka gambar
+              </a>
+            </div>
+          </div>
+        )}
       </section>
 
       <section className="pasal" id="cara-pakai">
@@ -344,11 +407,22 @@ export default function Page() {
           <span className="pasal-num">Galeri</span>
           <h2 className="pasal-title">Contoh Cepat</h2>
         </div>
+        <p className="tagline" style={{ marginBottom: 16 }}>
+          Tiap contoh di bawah ada link lengkapnya — tinggal pencet &quot;salin&quot;, langsung bisa ditempel ke bot
+          atau website kamu.
+        </p>
         <div className="examples">
-          <ExampleThumb text="BELUM SIAP" format="png" />
-          <ExampleThumb text="MASIH LOADING" format="jpg" />
-          <ExampleThumb text="SENIN LAGI" text2="MASIH NGANTUK" format="webp" />
-          <ExampleThumb text="LAGI DIPROSES" format="gif" />
+          <ExampleThumb origin={origin} text="BELUM SIAP" format="png" />
+          <ExampleThumb origin={origin} text="MASIH LOADING" format="jpg" />
+          <ExampleThumb origin={origin} text="SENIN LAGI" text2="MASIH NGANTUK" format="webp" />
+          <ExampleThumb origin={origin} text="LAGI DIPROSES" format="gif" />
+          <ExampleThumb
+            origin={origin}
+            text="BELUM SIAP"
+            format="png"
+            image="https://picsum.photos/id/237/400/400"
+            note="pakai foto eksternal (parameter image)"
+          />
         </div>
       </section>
 
@@ -360,14 +434,32 @@ export default function Page() {
   );
 }
 
-function ExampleThumb({ text, text2, format }) {
+function ExampleThumb({ origin, text, text2, format, image, note }) {
+  const [copied, setCopied] = useState(false);
   const params = new URLSearchParams({ text, width: "260", height: "260", format });
   if (text2) params.set("text2", text2);
-  const src = `/api/meme?${params.toString()}`;
+  if (image) params.set("image", image);
+  const path = `/api/meme?${params.toString()}`;
+  const fullUrl = origin ? `${origin}${path}` : path;
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(fullUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1600);
+    } catch {
+      // clipboard blocked — user can still select the text manually
+    }
+  };
+
   return (
     <figure>
-      <img src={src} alt={text} loading="lazy" />
-      <figcaption>?text={encodeURIComponent(text)}&amp;format={format}</figcaption>
+      <img src={path} alt={text} loading="lazy" />
+      <figcaption>{note || `?text=${encodeURIComponent(text)}&format=${format}`}</figcaption>
+      <div className="example-url">{fullUrl}</div>
+      <button type="button" className="btn secondary example-copy" onClick={copy}>
+        {copied ? "✓ tersalin" : "salin link"}
+      </button>
     </figure>
   );
 }
