@@ -109,29 +109,66 @@ custom, format gif:
 
 ## Font teks meme
 
-Teks dirender pakai **Big Shoulders Bold** (Google Font, lisensi OFL —
-bebas dipakai ulang), file-nya ada di `lib/fonts/BigShoulders-Bold.ttf`.
-Font ini di-embed langsung sebagai base64 di dalam SVG overlay saat
-render, bukan dipanggil lewat nama font sistem. Ini penting karena
-container serverless di Vercel **tidak punya font apa pun ter-install** —
-kalau font dipanggil lewat nama biasa (mis. `font-family: 'Arial Black'`),
-hasilnya teks muncul sebagai kotak-kotak (tofu box) karena tidak ada
-glyph yang cocok untuk digambar.
+Teksnya pakai **Anton** (Google Font, lisensi OFL — bebas dipakai ulang),
+bentuknya tebal-kapital-rapat, gaya klasik meme ala Impact. Font aslinya
+(**Impact**) punya lisensi Monotype yang proprietary dan nggak boleh
+di-redistribute, jadi Anton dipakai sebagai pengganti gratis yang paling
+mirip.
 
-> Catatan: kadang di log Vercel muncul baris
-> `Fontconfig error: Cannot load default config file: No such file: (null)`.
-> Itu cuma warning bawaan dari library gambar (librsvg) karena container
-> serverless memang tidak punya `fontconfig` ter-install — **bukan** error
-> yang menggagalkan render, karena font kita sudah di-embed langsung dan
-> tidak butuh fontconfig untuk dicari. Kalau gambar tetap gagal dibuat,
-> penyebabnya ada di error JSON yang dikembalikan endpoint-nya, bukan baris
-> warning ini.
+Font-nya di-fetch sekali dari CDN Fontsource/jsDelivr
+(`https://cdn.jsdelivr.net/fontsource/fonts/anton@5.3.0/latin-400-normal.ttf`)
+terus di-cache di memory, jadi nggak perlu nyimpen file `.ttf` besar di
+repo. Kalau fetch itu gagal (misal CDN lagi down), otomatis fallback ke
+`lib/fonts/BigShoulders-Bold.ttf` yang tetap ke-bundle di repo, biar
+generate meme nggak pernah benar-benar rusak.
 
-Kalau mau ganti font (misalnya ke Impact asli atau font lain):
+Cara nge-render teksnya pakai **[satori](https://github.com/vercel/satori)**
+(library yang sama yang dipakai `next/og` / `@vercel/og`), bukan tag SVG
+`<text>` biasa. Ini bukan cuma soal gaya — ini fix buat masalah teks yang
+muncul sebagai kotak-kotak (tofu box, □□□□) waktu di-deploy ke Vercel:
 
-1. Taruh file `.ttf` baru di `lib/fonts/`.
-2. Perbarui `FONT_PATH` di `lib/generate.js` supaya menunjuk ke file itu.
-3. Perbarui `outputFileTracingIncludes` di `next.config.js` supaya file
-   font ikut ter-bundle ke serverless function-nya.
-4. Pastikan lisensi font-nya memang mengizinkan redistribusi (font OFL
-   dari Google Fonts semuanya aman dipakai begini).
+- Tag SVG `<text>` itu di-raster oleh `librsvg`, yang di baliknya butuh
+  **Pango + Fontconfig** buat nge-shape hurufnya — termasuk kalau font-nya
+  di-embed sendiri lewat `@font-face`. Container serverless Vercel **tidak
+  ada fontconfig ter-install sama sekali**, jadi Pango gagal nemuin font
+  apa pun (termasuk yang di-embed) dan hasilnya kotak kosong.
+- `satori` beda: dia nge-shape teksnya sendiri di JavaScript murni langsung
+  dari file font-nya (nggak lewat Pango/fontconfig sama sekali), lalu
+  ngeluarin hasilnya sebagai SVG yang teksnya udah jadi bentuk vektor
+  (`<path>`), bukan tag `<text>` lagi. Pas SVG itu ditempel ke foto pakai
+  `sharp`, librsvg cuma perlu gambar bentuk vektornya doang — nggak perlu
+  nge-shape huruf lagi, jadi nggak butuh fontconfig sama sekali.
+
+> Kalau masih muncul baris `Fontconfig error: Cannot load default config
+> file` di log Vercel, itu masih bisa muncul (fontconfig dipanggil di
+> tempat lain oleh librsvg), tapi ini beneran cuma warning — teksnya sudah
+> nggak lewat jalur itu lagi.
+
+Kalau mau ganti ke font lain:
+
+- **Ganti ke font lain yang di-fetch dari CDN** (cara paling gampang, kayak
+  Anton sekarang): update `IMPACT_STYLE_FONT_URL` di `lib/generate.js` ke
+  URL `.ttf` font Fontsource lain, dan sesuaikan `weight` di
+  `renderOverlaySvg` (parameter `fonts: [...]`) sama `fontWeight` di
+  `outlinedLineNode` supaya cocok sama weight font barunya.
+- **Bundle file font sendiri** (kalau punya lisensi font-nya, misalnya font
+  Impact asli yang dibeli): taruh file `.ttf` di `lib/fonts/`, lalu ganti
+  `loadFontBuffer()` di `lib/generate.js` supaya baca file itu langsung
+  lewat `fs.readFile` (nggak usah fetch dari CDN lagi), dan pastikan
+  `outputFileTracingIncludes` di `next.config.js` menyertakan file itu
+  supaya ikut ter-bundle ke serverless function-nya.
+- Kalau pakai font dari Google Fonts / Fontsource, semuanya lisensi OFL
+  jadi aman buat dipakai ulang begini.
+
+> **Catatan tentang outline teks:** satori tidak menggambar
+> `-webkit-text-stroke` dengan benar (sempat bikin outline teks hilang total
+> walau warnanya sudah diset). Jadi outline-nya dibikin manual: tiap baris
+> teks digambar 8 kali dengan warna `stroke`, digeser beberapa piksel ke
+> segala arah, baru teks asli warna `color` ditumpuk di atasnya paling
+> akhir — trik outline klasik dari sebelum `text-stroke` ada di CSS.
+
+> **Catatan:** aku nulis bagian `satori` ini tanpa bisa nge-tes langsung di
+> sandbox (nggak ada akses internet buat `npm install satori` di sini),
+> jadi tolong jalanin `npm install && npm run dev` dan tes beberapa
+> kombinasi teks/posisi/ukuran dulu di lokal sebelum deploy ulang ke
+> Vercel. Kalau ada error pas testing, tinggal kirim pesan errornya.
