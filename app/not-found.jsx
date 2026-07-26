@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 export const metadata = {
-  title: "404 — Halaman Tidak Ditemukan | BELUMSIAP.GEN",
+  title: "404 — Halaman Tidak Ditemukan | UNEXAGEN",
 };
 
 export default function NotFound() {
@@ -9,7 +9,7 @@ export default function NotFound() {
     <main className="wrap">
       <header className="letterhead">
         <h1 className="wordmark">
-          BELUMSIAP<span>.GEN</span>
+          UNEXA<span>GEN</span>
         </h1>
         <div className="memo-meta">
           <span className="live-dot" aria-hidden="true" />
@@ -36,7 +36,7 @@ export default function NotFound() {
 
       <footer className="footer">
         <span>bebas dipakai — tempel, embed, atau panggil dari bot kesayanganmu.</span>
-        <span>BELUMSIAP.GEN</span>
+        <span>UNEXAGEN</span>
       </footer>
     </main>
   );

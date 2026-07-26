@@ -20,9 +20,9 @@ const plexSans = IBM_Plex_Sans({
 });
 
 export const metadata = {
-  title: "BELUMSIAP.GEN — Generator Meme Otomatis",
+  title: "UNEXAGEN — Generator Meme Otomatis",
   description:
-    "Generator gambar meme 'Belum Siap' via URL. Atur teks, ukuran, dan format langsung dari GET request — cocok dipakai di bot atau aplikasi apa saja.",
+    "Generator gambar meme via URL, contohnya tema 'Belum Siap'. Atur teks, ukuran, dan format langsung dari GET request — cocok dipakai di bot atau aplikasi apa saja.",
 };
 
 export default function RootLayout({ children }) {

@@ -140,7 +140,7 @@ export default function Page() {
     <main className="wrap">
       <header className="letterhead">
         <h1 className="wordmark">
-          BELUMSIAP<span>.GEN</span>
+          UNEXA<span>GEN</span>
         </h1>
         <div className="memo-meta">
           <span className="live-dot" aria-hidden="true" />
@@ -326,7 +326,7 @@ export default function Page() {
             </div>
             {previewBlobUrl ? (
               <div className="receipt-actions">
-                <a className="btn" href={previewBlobUrl} download={`belumsiap.${format === "jpeg" ? "jpg" : format}`}>
+                <a className="btn" href={previewBlobUrl} download={`unexagen.${format === "jpeg" ? "jpg" : format}`}>
                   unduh gambar
                 </a>
                 <a className="btn secondary" href={previewBlobUrl} target="_blank" rel="noreferrer">
@@ -532,7 +532,7 @@ export default function Page() {
 
       <footer className="footer">
         <span>bebas dipakai — tempel, embed, atau panggil dari bot kesayanganmu.</span>
-        <span>BELUMSIAP.GEN</span>
+        <span>UNEXAGEN</span>
       </footer>
     </main>
   );
