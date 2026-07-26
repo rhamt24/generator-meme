@@ -343,6 +343,16 @@ export default function Page() {
           <div className="receipt">
             <div className="receipt-label">GET URL — salin &amp; pakai di mana saja</div>
             <div className="receipt-url">{fullUrl}</div>
+            <ul className="url-legend">
+              <li><code>text</code> = &quot;{debouncedText || "BELUM SIAP"}&quot; <span>(teks {pos === "bottom" ? "bawah" : "atas"})</span></li>
+              {debouncedText2 && (
+                <li><code>text2</code> = &quot;{debouncedText2}&quot; <span>(teks {pos2 === "top" ? "atas" : "bawah"})</span></li>
+              )}
+              <li><code>size</code> = {fontSize} <span>(ukuran teks, px)</span></li>
+              <li><code>color</code> / <code>stroke</code> = {color} / {stroke} <span>(warna isi / warna outline)</span></li>
+              <li><code>width</code> × <code>height</code> = {debouncedWidth || 720} × {debouncedHeight || 720} <span>(ukuran gambar, px)</span></li>
+              <li><code>format</code> = {format}</li>
+            </ul>
             <div className="receipt-actions">
               <button className={`btn ${copied ? "stamped" : ""}`} onClick={copyUrl}>
                 {copied ? "✓ tersalin" : "salin url"}
@@ -484,6 +494,53 @@ export default function Page() {
         </table>
       </section>
 
+      <section className="pasal" id="contoh-url">
+        <div className="pasal-head">
+          <span className="pasal-num">Referensi</span>
+          <h2 className="pasal-title">Contoh URL Siap Pakai</h2>
+        </div>
+        <p className="tagline" style={{ marginBottom: 16 }}>
+          Langsung salin salah satu, ganti teks/warnanya sesuai kebutuhan.
+        </p>
+        <div className="url-list">
+          <UrlExampleRow
+            origin={origin}
+            desc="Paling simpel — teks di atas, foto contoh bawaan"
+            params={{ text: "BELUM SIAP" }}
+          />
+          <UrlExampleRow
+            origin={origin}
+            desc="Teks atas + bawah, ukuran teks custom"
+            params={{ text: "DEADLINE BESOK", text2: "MASIH SANTAI", size: "80" }}
+          />
+          <UrlExampleRow
+            origin={origin}
+            desc="Dua teks numpuk di atas (pos2=top)"
+            params={{ text: "BARIS SATU", text2: "BARIS DUA", pos2: "top" }}
+          />
+          <UrlExampleRow
+            origin={origin}
+            desc="Teks tunggal di bawah (pos=bottom)"
+            params={{ text: "DI BAWAH DOANG", pos: "bottom" }}
+          />
+          <UrlExampleRow
+            origin={origin}
+            desc="Warna isi kuning, outline merah"
+            params={{ text: "AWAS GAWAT", color: "ffe600", stroke: "cc0000" }}
+          />
+          <UrlExampleRow
+            origin={origin}
+            desc="Format GIF (teks muncul dengan efek cap stempel)"
+            params={{ text: "LAGI PROSES", format: "gif" }}
+          />
+          <UrlExampleRow
+            origin={origin}
+            desc="Pakai foto dari URL sendiri (parameter image), ukuran custom"
+            params={{ text: "FOTO SENDIRI", image: "https://picsum.photos/id/64/600/600", width: "600", height: "600" }}
+          />
+        </div>
+      </section>
+
       <section className="pasal" id="contoh">
         <div className="pasal-head">
           <span className="pasal-num">Galeri</span>
@@ -535,6 +592,35 @@ export default function Page() {
         <span>UNEXAGEN</span>
       </footer>
     </main>
+  );
+}
+
+function UrlExampleRow({ origin, desc, params }) {
+  const [copied, setCopied] = useState(false);
+  const search = new URLSearchParams(params);
+  const path = `/api/meme?${search.toString()}`;
+  const fullUrl = origin ? `${origin}${path}` : path;
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(fullUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1600);
+    } catch {
+      // clipboard blocked — user can still select the text manually
+    }
+  };
+
+  return (
+    <div className="url-row">
+      <div className="url-row-desc">{desc}</div>
+      <div className="url-row-bottom">
+        <code className="url-row-code">{fullUrl}</code>
+        <button type="button" className="btn secondary" onClick={copy}>
+          {copied ? "✓ tersalin" : "salin"}
+        </button>
+      </div>
+    </div>
   );
 }
 

@@ -382,6 +382,62 @@ a {
   color: var(--ink);
 }
 
+.url-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.url-row {
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.4);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+}
+
+.url-row-desc {
+  font-size: 13px;
+  color: var(--ink);
+  margin-bottom: 6px;
+}
+
+.url-row-bottom {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.url-row-code {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  word-break: break-all;
+  color: var(--ink-soft);
+}
+
+.url-legend {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  color: var(--ink-soft);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.url-legend code {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.url-legend span {
+  color: var(--ink-soft);
+}
+
 .receipt-actions {
   display: flex;
   gap: 10px;
