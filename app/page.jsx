@@ -16,6 +16,9 @@ function useDebounced(value, delay) {
 export default function Page() {
   const [text, setText] = useState("BELUM SIAP");
   const [text2, setText2] = useState("");
+  const [pos, setPos] = useState("top");
+  const [pos2, setPos2] = useState("bottom");
+  const [fontSize, setFontSize] = useState(64);
   const [width, setWidth] = useState(720);
   const [height, setHeight] = useState(720);
   const [format, setFormat] = useState("png");
@@ -59,13 +62,16 @@ export default function Page() {
     const params = new URLSearchParams();
     params.set("text", debouncedText || "BELUM SIAP");
     if (debouncedText2) params.set("text2", debouncedText2);
+    params.set("pos", pos);
+    params.set("pos2", pos2);
+    params.set("size", String(fontSize || 64));
     params.set("width", String(debouncedWidth || 720));
     params.set("height", String(debouncedHeight || 720));
     params.set("format", format);
     params.set("color", color.replace("#", ""));
     params.set("stroke", stroke.replace("#", ""));
     return `/api/meme?${params.toString()}`;
-  }, [debouncedText, debouncedText2, debouncedWidth, debouncedHeight, format, color, stroke]);
+  }, [debouncedText, debouncedText2, pos, pos2, fontSize, debouncedWidth, debouncedHeight, format, color, stroke]);
 
   // When a local photo is picked, it never leaves this browser except as
   // a direct POST straight to /api/meme — the render comes back as a
@@ -83,6 +89,9 @@ export default function Page() {
         formData.append("file", localFile);
         formData.append("text", debouncedText || "BELUM SIAP");
         if (debouncedText2) formData.append("text2", debouncedText2);
+        formData.append("pos", pos);
+        formData.append("pos2", pos2);
+        formData.append("size", String(fontSize || 64));
         formData.append("width", String(debouncedWidth || 720));
         formData.append("height", String(debouncedHeight || 720));
         formData.append("format", format);
@@ -112,7 +121,7 @@ export default function Page() {
     return () => {
       cancelled = true;
     };
-  }, [localFile, debouncedText, debouncedText2, debouncedWidth, debouncedHeight, format, color, stroke]);
+  }, [localFile, debouncedText, debouncedText2, pos, pos2, fontSize, debouncedWidth, debouncedHeight, format, color, stroke]);
 
   const previewSrc = localFile ? previewBlobUrl : path;
   const fullUrl = origin ? `${origin}${path}` : path;
@@ -170,6 +179,15 @@ export default function Page() {
               <label htmlFor="photo">Foto dasar</label>
               <div className="upload-row">
                 <label className="btn secondary upload-btn" htmlFor="photo">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path
+                      d="M12 16V4M12 4L7 9M12 4L17 9M5 20H19"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
                   {rendering ? "memproses…" : "upload dari galeri"}
                 </label>
                 <input
@@ -198,12 +216,51 @@ export default function Page() {
             </div>
 
             <div className="field">
-              <label htmlFor="text">Teks atas</label>
+              <div className="field-inline-head">
+                <label htmlFor="text">Teks 1</label>
+                <select
+                  className="pos-select"
+                  aria-label="Posisi teks 1"
+                  value={pos}
+                  onChange={(e) => setPos(e.target.value)}
+                >
+                  <option value="top">atas</option>
+                  <option value="bottom">bawah</option>
+                </select>
+              </div>
               <input id="text" type="text" value={text} maxLength={80} onChange={(e) => setText(e.target.value)} />
             </div>
             <div className="field">
-              <label htmlFor="text2">Teks bawah (opsional)</label>
+              <div className="field-inline-head">
+                <label htmlFor="text2">Teks 2 (opsional)</label>
+                <select
+                  className="pos-select"
+                  aria-label="Posisi teks 2"
+                  value={pos2}
+                  onChange={(e) => setPos2(e.target.value)}
+                >
+                  <option value="top">atas</option>
+                  <option value="bottom">bawah</option>
+                </select>
+              </div>
               <input id="text2" type="text" value={text2} maxLength={80} onChange={(e) => setText2(e.target.value)} />
+            </div>
+
+            <div className="field">
+              <div className="field-inline-head">
+                <label htmlFor="fontSize">Ukuran teks (px)</label>
+                <span className="pos-select" style={{ border: "none", padding: 0 }}>
+                  {fontSize}px
+                </span>
+              </div>
+              <input
+                id="fontSize"
+                type="range"
+                min={20}
+                max={160}
+                value={fontSize}
+                onChange={(e) => setFontSize(Number(e.target.value))}
+              />
             </div>
 
             <div className="field row2">
@@ -319,8 +376,15 @@ export default function Page() {
           </li>
           <li>
             <span>
-              Ganti teksnya lewat parameter <code>text</code> (teks atas) dan <code>text2</code> (teks bawah, boleh
-              dikosongkan). Otomatis jadi huruf kapital dan pindah baris sendiri kalau kepanjangan.
+              Ganti teksnya lewat parameter <code>text</code> dan <code>text2</code> (boleh dikosongkan). Otomatis
+              jadi huruf kapital dan pindah baris sendiri kalau kepanjangan.
+            </span>
+          </li>
+          <li>
+            <span>
+              Atur posisinya lewat <code>pos</code> dan <code>pos2</code> — masing-masing bisa <code>top</code> atau{" "}
+              <code>bottom</code>. Bisa atas-bawah seperti biasa, keduanya di atas, atau keduanya di bawah. Ukuran
+              hurufnya diatur lewat <code>size</code> (piksel).
             </span>
           </li>
           <li>
@@ -366,12 +430,30 @@ export default function Page() {
             <tr>
               <td><code>text</code></td>
               <td>BELUM SIAP</td>
-              <td>Teks yang ditampilkan di bagian atas gambar.</td>
+              <td>Teks utama. Posisinya diatur lewat <code>pos</code>.</td>
             </tr>
             <tr>
               <td><code>text2</code></td>
               <td>(kosong)</td>
-              <td>Teks tambahan di bagian bawah gambar. Boleh dikosongkan.</td>
+              <td>Teks tambahan. Boleh dikosongkan.</td>
+            </tr>
+            <tr>
+              <td><code>pos</code></td>
+              <td>top</td>
+              <td>Posisi <code>text</code>: <code>top</code> atau <code>bottom</code>.</td>
+            </tr>
+            <tr>
+              <td><code>pos2</code></td>
+              <td>bottom</td>
+              <td>
+                Posisi <code>text2</code>: <code>top</code> atau <code>bottom</code>. Set <code>pos</code> dan{" "}
+                <code>pos2</code> ke sisi yang sama kalau mau dua teks numpuk di satu sisi.
+              </td>
+            </tr>
+            <tr>
+              <td><code>size</code></td>
+              <td>otomatis</td>
+              <td>Ukuran teks dalam piksel. Rentang 10–400. Kosongkan untuk skala otomatis sesuai lebar gambar.</td>
             </tr>
             <tr>
               <td><code>width</code></td>
@@ -423,6 +505,28 @@ export default function Page() {
             image="https://picsum.photos/id/237/400/400"
             note="pakai foto eksternal (parameter image)"
           />
+          <ExampleThumb
+            origin={origin}
+            text="GEDE BANGET"
+            format="png"
+            size="110"
+            note="ukuran teks custom (parameter size)"
+          />
+          <ExampleThumb
+            origin={origin}
+            text="BARIS SATU"
+            text2="BARIS DUA"
+            pos2="top"
+            format="png"
+            note="dua teks numpuk di atas (pos2=top)"
+          />
+          <ExampleThumb
+            origin={origin}
+            text="DI BAWAH DOANG"
+            pos="bottom"
+            format="png"
+            note="teks tunggal di bawah (pos=bottom)"
+          />
         </div>
       </section>
 
@@ -434,11 +538,14 @@ export default function Page() {
   );
 }
 
-function ExampleThumb({ origin, text, text2, format, image, note }) {
+function ExampleThumb({ origin, text, text2, format, image, pos, pos2, size, note }) {
   const [copied, setCopied] = useState(false);
   const params = new URLSearchParams({ text, width: "260", height: "260", format });
   if (text2) params.set("text2", text2);
   if (image) params.set("image", image);
+  if (pos) params.set("pos", pos);
+  if (pos2) params.set("pos2", pos2);
+  if (size) params.set("size", size);
   const path = `/api/meme?${params.toString()}`;
   const fullUrl = origin ? `${origin}${path}` : path;
 

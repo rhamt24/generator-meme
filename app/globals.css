@@ -226,11 +226,11 @@ a {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+  align-items: center;
 }
 
 .upload-btn {
   display: inline-flex;
-  cursor: pointer;
 }
 
 .upload-status {
@@ -242,6 +242,30 @@ a {
 
 .upload-error {
   color: var(--stamp-red);
+}
+
+.field-inline-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.field-inline-head label {
+  margin: 0;
+}
+
+.pos-select {
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--ink);
+  background: #fff;
+  border: 1px solid var(--ink);
+  border-radius: var(--radius-sm);
+  padding: 3px 6px;
+  cursor: pointer;
 }
 
 .field {
@@ -272,6 +296,12 @@ a {
   border: 1px solid var(--ink);
   border-radius: var(--radius-sm);
   color: var(--ink);
+}
+
+.field input[type="range"] {
+  width: 100%;
+  accent-color: var(--stamp-red);
+  cursor: pointer;
 }
 
 .field input[type="text"]:focus,
@@ -359,7 +389,10 @@ a {
   flex-wrap: wrap;
 }
 
-button.btn {
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-family: var(--font-mono), monospace;
   font-size: 12.5px;
   text-transform: uppercase;
@@ -370,25 +403,27 @@ button.btn {
   padding: 9px 14px;
   border-radius: var(--radius-sm);
   cursor: pointer;
+  text-decoration: none;
   transition: transform 120ms ease, box-shadow 120ms ease;
 }
 
-button.btn:hover {
+.btn:hover {
   transform: translate(-1px, -1px);
   box-shadow: 3px 3px 0 rgba(28, 27, 25, 0.25);
+  color: inherit;
 }
 
-button.btn:active {
+.btn:active {
   transform: translate(0, 0);
   box-shadow: none;
 }
 
-button.btn.secondary {
+.btn.secondary {
   background: transparent;
   color: var(--ink);
 }
 
-button.btn.stamped {
+.btn.stamped {
   background: var(--stamp-red);
   border-color: var(--stamp-red);
   color: #fff;
