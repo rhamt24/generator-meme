@@ -1,9 +1,10 @@
 # BELUMSIAP.GEN
 
-Generator meme "Belum Siap" — foto dasarnya tetap (gambar 5 orang duduk pakai jas),
-teks di atasnya bisa diganti-ganti lewat parameter URL. Ada halaman web untuk
-coba-coba langsung, dan ada endpoint `GET` yang bisa dipanggil dari bot, chat,
-atau aplikasi apa pun.
+Generator meme berbasis URL. Foto dasarnya bebas — bisa pakai foto contoh
+bawaan, upload foto sendiri dari galeri lewat halaman web, atau (kalau manggil
+API-nya langsung) kirim link foto dari CDN apa pun lewat parameter `image`.
+Teks di atasnya diatur lewat parameter URL (isi, posisi atas/bawah, ukuran),
+jadi bisa dipanggil dari bot, chat, atau aplikasi apa pun yang bisa buka URL.
 
 ## Menjalankan di lokal
 
@@ -14,53 +15,96 @@ npm run dev
 
 Buka `http://localhost:3000`.
 
-> Kalau develop lewat Termux dan `sharp` gagal ke-install (butuh binary native),
-> jalankan `npm install --platform=linux --arch=x64 sharp` atau install di mesin
-> lain lalu commit `package-lock.json`-nya — saat build di Vercel, `sharp` akan
-> otomatis ambil binary yang sesuai untuk server Vercel (Linux x64), jadi tidak
-> masalah kalau di HP/Termux beda arsitektur.
+> Kalau develop lewat Termux dan `sharp` gagal ke-install (butuh binary
+> native), install-nya bisa di komputer lain lalu commit `package-lock.json`.
+> Vercel bakal otomatis ambil binary yang sesuai untuk servernya sendiri
+> (Linux x64), jadi tidak masalah kalau di HP/Termux beda arsitektur.
 
-## Deploy ke Vercel
+## Deploy ke Vercel — PENTING biar tidak 404
 
-1. Push folder ini ke repo GitHub baru.
-2. Import repo tersebut di [vercel.com/new](https://vercel.com/new).
-3. Framework preset otomatis terdeteksi sebagai **Next.js** — tidak perlu ubah
-   apa-apa, langsung klik **Deploy**.
-4. Setelah selesai, endpoint gambar bisa diakses di:
-   `https://<domain-kamu>.vercel.app/api/meme?text=BELUM+SIAP`
+Penyebab paling umum semua halaman jadi `404` setelah deploy adalah folder
+project ini ikut ter-nested (folder `belumsiap-gen` ada di **dalam** repo,
+bukan jadi isi repo itu sendiri). Vercel jadi bingung cari `app/page.jsx`-nya.
+
+Cara amannya, jalankan `git init` **di dalam** folder hasil extract, bukan di
+folder induknya:
+
+```bash
+cd belumsiap-gen        # masuk dulu ke folder hasil extract
+git init
+git add .
+git commit -m "init belumsiap.gen"
+git branch -M main
+git remote add origin <url-repo-github-kamu>
+git push -u origin main
+```
+
+Setelah itu:
+
+1. Buka [vercel.com/new](https://vercel.com/new), import repo tadi.
+2. Framework preset otomatis kedeteksi **Next.js** — tidak perlu ubah apa-apa.
+3. Kalau kamu terlanjur push dengan folder ter-nested, tinggal buka
+   **Project Settings → General → Root Directory**, isi dengan nama folder
+   itu (misalnya `belumsiap-gen`), lalu redeploy.
+4. Setelah selesai, coba buka `https://<domain-kamu>.vercel.app/api/meme?text=TES`
+   langsung dari browser — kalau muncul gambar, berarti sudah beres.
 
 ## Struktur penting
 
-- `public/base.jpg` — foto dasar (template meme). Ganti file ini kalau mau pakai
-  foto lain, ukuran/rasio bebas karena akan di-crop otomatis sesuai `width`/`height`.
-- `lib/generate.js` — logika render teks + gambar (pakai `sharp`) dan render GIF
-  animasi stempel (pakai `gifenc`, murni JavaScript, tidak butuh binary tambahan
-  di luar `sharp`).
-- `app/api/meme/route.js` — endpoint `GET` publik.
-- `app/page.jsx` — halaman UI: form, live preview, dokumentasi parameter.
+- `public/base.jpg` — foto contoh yang dipakai kalau tidak ada foto lain
+  diberikan. Ganti file ini kapan saja kalau mau ganti foto contoh default.
+- `app/api/meme/route.js` — endpoint utama. `GET` bikin gambar dari foto
+  contoh atau URL foto (parameter `image`). `POST` menerima foto langsung
+  dari form upload di web (multipart `file` + parameter teks lainnya) dan
+  merender-nya langsung dari buffer di memori — foto tidak pernah diunggah
+  ke hosting pihak ketiga mana pun (tidak ada Catbox atau CDN eksternal
+  yang dilibatkan untuk upload dari galeri).
+- `lib/generate.js` — logika render teks + gambar (`sharp`) dan GIF animasi
+  stempel (`gifenc`). Font teks di-embed langsung dari `lib/fonts/`.
+- `lib/fonts/BigShoulders-Bold.ttf` — font meme bawaan (OFL), di-embed
+  base64 ke SVG saat render supaya tidak bergantung font sistem server.
+- `app/page.jsx` — halaman UI: upload foto, form teks, live preview,
+  dokumentasi parameter.
 
 ## Parameter endpoint `GET /api/meme`
 
-| Parameter | Default      | Keterangan                                              |
-| --------- | ------------ | -------------------------------------------------------- |
-| `text`    | `BELUM SIAP` | Teks di bagian atas gambar                                |
-| `text2`   | *(kosong)*   | Teks tambahan di bagian bawah, opsional                   |
-| `width`   | `720`        | Lebar hasil (px), 100–1600                                |
-| `height`  | `720`        | Tinggi hasil (px), 100–1600                                |
-| `format`  | `png`        | `png` / `jpg` / `webp` / `gif`                             |
-| `color`   | `ffffff`     | Warna teks, hex tanpa `#`                                  |
-| `stroke`  | `000000`     | Warna outline teks, hex tanpa `#`                          |
+| Parameter | Default        | Keterangan                                                        |
+| --------- | -------------- | ------------------------------------------------------------------ |
+| `image`   | foto contoh    | URL foto yang mau dipakai jadi dasar meme (Catbox, Imgur, CDN lain) |
+| `text`    | `BELUM SIAP`   | Teks utama. Posisinya diatur lewat `pos`                            |
+| `text2`   | *(kosong)*     | Teks tambahan, opsional. Posisinya diatur lewat `pos2`              |
+| `pos`     | `top`          | Posisi `text`: `top` atau `bottom`                                  |
+| `pos2`    | `bottom`       | Posisi `text2`: `top` atau `bottom`. Samakan dengan `pos` kalau mau dua teks numpuk di satu sisi |
+| `size`    | otomatis       | Ukuran teks (px), 10–400. Kosongkan untuk skala otomatis sesuai lebar gambar |
+| `width`   | `720`          | Lebar hasil (px), 100–1600                                          |
+| `height`  | `720`          | Tinggi hasil (px), 100–1600                                         |
+| `format`  | `png`          | `png` / `jpg` / `webp` / `gif`                                      |
+| `color`   | `ffffff`       | Warna teks, hex tanpa `#`                                           |
+| `stroke`  | `000000`       | Warna outline teks, hex tanpa `#`                                   |
 
-Contoh:
+Contoh — pakai foto sendiri dari CDN, teks 2 baris (keduanya di bawah), ukuran
+custom, format gif:
 
 ```
-/api/meme?text=DEADLINE+BESOK&text2=TAPI+BELUM+MULAI&format=gif&width=500&height=500
+/api/meme?image=https://files.catbox.moe/contoh.jpg&text=DEADLINE+BESOK&text2=TAPI+BELUM+MULAI&pos=bottom&pos2=bottom&size=70&format=gif&width=500&height=500
 ```
 
-## Kalau mau ganti font meme
+## Font teks meme
 
-Saat ini teks pakai font sans bold bawaan sistem (`Arial Black` / fallback bold
-sans-serif) supaya tidak bergantung pada font pihak ketiga di server. Kalau mau
-persis Impact, taruh file `.ttf` di `public/fonts/`, lalu daftarkan lewat
-`fontconfig` sebelum build atau embed via `sharp`'s SVG renderer — ada beberapa
-cara, tanya lagi kalau butuh dibantu setup-nya.
+Teks dirender pakai **Big Shoulders Bold** (Google Font, lisensi OFL —
+bebas dipakai ulang), file-nya ada di `lib/fonts/BigShoulders-Bold.ttf`.
+Font ini di-embed langsung sebagai base64 di dalam SVG overlay saat
+render, bukan dipanggil lewat nama font sistem. Ini penting karena
+container serverless di Vercel **tidak punya font apa pun ter-install** —
+kalau font dipanggil lewat nama biasa (mis. `font-family: 'Arial Black'`),
+hasilnya teks muncul sebagai kotak-kotak (tofu box) karena tidak ada
+glyph yang cocok untuk digambar.
+
+Kalau mau ganti font (misalnya ke Impact asli atau font lain):
+
+1. Taruh file `.ttf` baru di `lib/fonts/`.
+2. Perbarui `FONT_PATH` di `lib/generate.js` supaya menunjuk ke file itu.
+3. Perbarui `outputFileTracingIncludes` di `next.config.js` supaya file
+   font ikut ter-bundle ke serverless function-nya.
+4. Pastikan lisensi font-nya memang mengizinkan redistribusi (font OFL
+   dari Google Fonts semuanya aman dipakai begini).
