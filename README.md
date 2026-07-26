@@ -1,4 +1,4 @@
-# BELUMSIAP.GEN
+# UNEXAGEN
 
 Generator meme berbasis URL. Foto dasarnya bebas — bisa pakai foto contoh
 bawaan, upload foto sendiri dari galeri lewat halaman web, atau (kalau manggil
@@ -23,17 +23,17 @@ Buka `http://localhost:3000`.
 ## Deploy ke Vercel — PENTING biar tidak 404
 
 Penyebab paling umum semua halaman jadi `404` setelah deploy adalah folder
-project ini ikut ter-nested (folder `belumsiap-gen` ada di **dalam** repo,
-bukan jadi isi repo itu sendiri). Vercel jadi bingung cari `app/page.jsx`-nya.
+project ini ikut ter-nested (folder `unexagen` ada di **dalam** repo, bukan
+jadi isi repo itu sendiri). Vercel jadi bingung cari `app/page.jsx`-nya.
 
 Cara amannya, jalankan `git init` **di dalam** folder hasil extract, bukan di
 folder induknya:
 
 ```bash
-cd belumsiap-gen        # masuk dulu ke folder hasil extract
+cd unexagen             # masuk dulu ke folder hasil extract
 git init
 git add .
-git commit -m "init belumsiap.gen"
+git commit -m "init unexagen"
 git branch -M main
 git remote add origin <url-repo-github-kamu>
 git push -u origin main
@@ -45,14 +45,15 @@ Setelah itu:
 2. Framework preset otomatis kedeteksi **Next.js** — tidak perlu ubah apa-apa.
 3. Kalau kamu terlanjur push dengan folder ter-nested, tinggal buka
    **Project Settings → General → Root Directory**, isi dengan nama folder
-   itu (misalnya `belumsiap-gen`), lalu redeploy.
+   itu (misalnya `unexagen`), lalu redeploy.
 4. Setelah selesai, coba buka `https://<domain-kamu>.vercel.app/api/meme?text=TES`
    langsung dari browser — kalau muncul gambar, berarti sudah beres.
 
 ## Struktur penting
 
-- `public/base.jpg` — foto contoh yang dipakai kalau tidak ada foto lain
-  diberikan. Ganti file ini kapan saja kalau mau ganti foto contoh default.
+- `lib/assets/base.jpg` — foto contoh yang dipakai kalau tidak ada foto lain
+  diberikan. **Ganti file ini** (bukan yang di `public/`) kalau mau ganti foto
+  contoh default — lihat bagian "Kalau mau ganti foto contoh" di bawah.
 - `app/api/meme/route.js` — endpoint utama. `GET` bikin gambar dari foto
   contoh atau URL foto (parameter `image`). `POST` menerima foto langsung
   dari form upload di web (multipart `file` + parameter teks lainnya) dan
@@ -65,6 +66,23 @@ Setelah itu:
   base64 ke SVG saat render supaya tidak bergantung font sistem server.
 - `app/page.jsx` — halaman UI: upload foto, form teks, live preview,
   dokumentasi parameter.
+
+## Kalau mau ganti foto contoh
+
+Foto contoh (dipakai kalau tidak ada `image=` atau upload) disimpan di
+`lib/assets/base.jpg`, **bukan** di `public/base.jpg`. Ini sengaja: file di
+`public/` dilayani sebagai static asset lewat CDN Vercel dan **tidak ikut**
+ke filesystem serverless function-nya, jadi kalau dibaca pakai `fs` dari
+dalam function, hasilnya `ENOENT` (gagal ditemukan) walau nampak baik-baik
+saja pas dites lokal.
+
+Langkahnya:
+
+1. Timpa file `lib/assets/base.jpg` dengan foto barumu (nama file harus
+   tetap sama, atau ubah `BASE_IMAGE_PATH` di `lib/generate.js`).
+2. Pastikan `next.config.js` → `experimental.outputFileTracingIncludes`
+   masih menyertakan path file itu.
+3. Redeploy.
 
 ## Parameter endpoint `GET /api/meme`
 
@@ -99,6 +117,15 @@ container serverless di Vercel **tidak punya font apa pun ter-install** —
 kalau font dipanggil lewat nama biasa (mis. `font-family: 'Arial Black'`),
 hasilnya teks muncul sebagai kotak-kotak (tofu box) karena tidak ada
 glyph yang cocok untuk digambar.
+
+> Catatan: kadang di log Vercel muncul baris
+> `Fontconfig error: Cannot load default config file: No such file: (null)`.
+> Itu cuma warning bawaan dari library gambar (librsvg) karena container
+> serverless memang tidak punya `fontconfig` ter-install — **bukan** error
+> yang menggagalkan render, karena font kita sudah di-embed langsung dan
+> tidak butuh fontconfig untuk dicari. Kalau gambar tetap gagal dibuat,
+> penyebabnya ada di error JSON yang dikembalikan endpoint-nya, bukan baris
+> warning ini.
 
 Kalau mau ganti font (misalnya ke Impact asli atau font lain):
 

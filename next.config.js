@@ -3,7 +3,7 @@ const nextConfig = {
   reactStrictMode: true,
   experimental: {
     outputFileTracingIncludes: {
-      "/api/meme": ["./public/base.jpg", "./lib/fonts/BigShoulders-Bold.ttf"],
+      "/api/meme": ["./lib/assets/base.jpg", "./lib/fonts/BigShoulders-Bold.ttf"],
     },
   },
 };
